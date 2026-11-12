@@ -1,7 +1,10 @@
 # FastDNS
 
-<img src="images/screenshot_linux.png" alt="windows" width="40%">
-<img src="images/screenshot_linux.png" alt="windows" width="40%">
+<p align="center">
+  <img src="images/screenshot_linux.png" width="30%" alt="linux screenshot" />
+  <img src="images/screenshot_windows.png" width="30%" alt="windows screenshot" />
+</p>
+
 
 Cross-platform DNS switcher for Linux (Ubuntu/Debian/Mint) and Windows 10/11.
 Routes DNS traffic globally or conditionally (Google, Gemini, Antigravity) using custom DNS profiles in `dns_profiles/`.
