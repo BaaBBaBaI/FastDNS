@@ -49,7 +49,8 @@ function New-Shortcut {
         [string]$TargetPath,
         [string]$Arguments,
         [string]$WorkingDirectory,
-        [string]$Description
+        [string]$Description,
+        [string]$IconLocation = "$env:SystemRoot\System32\shell32.dll,13"
     )
     $WshShell = New-Object -ComObject WScript.Shell
     $Shortcut = $WshShell.CreateShortcut($ShortcutPath)
@@ -57,7 +58,7 @@ function New-Shortcut {
     $Shortcut.Arguments = $Arguments
     $Shortcut.WorkingDirectory = $WorkingDirectory
     $Shortcut.Description = $Description
-    $Shortcut.IconLocation = "$env:SystemRoot\System32\shell32.dll,13"
+    $Shortcut.IconLocation = $IconLocation
     $Shortcut.Save()
 }
 
@@ -118,8 +119,8 @@ Write-Host "Installing $AppName to $InstallDir..."
 
 New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
 
-# Clean old code/profiles copy before copying fresh files
-foreach ($sub in @("fastdns", "dns_profiles")) {
+# Clean old code/profiles/assets copy before copying fresh files
+foreach ($sub in @("fastdns", "dns_profiles", "img")) {
     $destSub = Join-Path $InstallDir $sub
     if (Test-Path $destSub) {
         Remove-Item -Path $destSub -Recurse -Force
@@ -154,6 +155,9 @@ pause
 }
 Set-Content -Path (Join-Path $InstallDir "uninstall.bat") -Value $UninstallBat -Encoding ASCII
 
+$AppIconFile = Join-Path $InstallDir "img\icons\dns_icon_glass.ico"
+$AppIconLocation = if (Test-Path $AppIconFile) { "$AppIconFile,0" } else { "$env:SystemRoot\System32\shell32.dll,13" }
+
 # Create Start Menu shortcut
 New-Item -ItemType Directory -Path $StartMenuDir -Force | Out-Null
 New-Shortcut `
@@ -161,7 +165,8 @@ New-Shortcut `
     -TargetPath $PythonwExe `
     -Arguments "`"$InstallDir\main.py`"" `
     -WorkingDirectory $InstallDir `
-    -Description "FastDNS Conditional DNS Switcher"
+    -Description "FastDNS Conditional DNS Switcher" `
+    -IconLocation $AppIconLocation
 
 New-Shortcut `
     -ShortcutPath (Join-Path $StartMenuDir "Uninstall FastDNS.lnk") `
@@ -177,7 +182,8 @@ if (-not $NoDesktopShortcut) {
         -TargetPath $PythonwExe `
         -Arguments "`"$InstallDir\main.py`"" `
         -WorkingDirectory $InstallDir `
-        -Description "FastDNS Conditional DNS Switcher"
+        -Description "FastDNS Conditional DNS Switcher" `
+        -IconLocation $AppIconLocation
 }
 
 # Register in Windows Installed Apps (Add/Remove Programs)

@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import ctypes
 import os
+from pathlib import Path
 import subprocess
 import sys
 import threading
@@ -32,6 +34,43 @@ TEXT_MUTED = "#858585"     # Subtitle / description
 COLOR_ACCENT = "#007acc"    # Primary action blue
 COLOR_GREEN = "#4ec9b0"     # Status active green
 COLOR_RED = "#f14c4c"       # Warning / inactive red
+
+
+def _apply_windows_dark_titlebar(win: tk.Wm) -> None:
+    """Enable dark title bar / window border on Windows 10/11 without affecting Linux."""
+    if sys.platform != "win32":
+        return
+    try:
+        win.update_idletasks()
+        hwnd = ctypes.windll.user32.GetParent(win.winfo_id()) or win.winfo_id()
+        value = ctypes.c_int(1)
+        dwmapi = ctypes.windll.dwmapi
+        # DWMWA_USE_IMMERSIVE_DARK_MODE = 20 (Win10 20H1+ / Win11), fallback 19 (older Win10)
+        res = dwmapi.DwmSetWindowAttribute(
+            hwnd, 20, ctypes.byref(value), ctypes.sizeof(value)
+        )
+        if res != 0:
+            dwmapi.DwmSetWindowAttribute(
+                hwnd, 19, ctypes.byref(value), ctypes.sizeof(value)
+            )
+    except Exception:
+        pass
+
+
+def _find_icon_path(filename: str = "dns_icon_glass.png") -> Optional[Path]:
+    """Locate a bundled application icon file across source and frozen builds."""
+    rel = Path("img") / "icons" / filename
+    candidates = []
+    meipass = getattr(sys, "_MEIPASS", None)
+    if meipass:
+        candidates.append(Path(meipass) / rel)
+    if getattr(sys, "frozen", False):
+        candidates.append(Path(sys.executable).resolve().parent / rel)
+    candidates.append(Path(__file__).resolve().parent.parent / rel)
+    for path in candidates:
+        if path.is_file():
+            return path
+    return None
 
 
 def _make_modal(dlg: tk.Toplevel, parent: tk.Wm) -> None:
@@ -85,6 +124,28 @@ class FastDnsApp:
         self.root.title("FastDNS")
         self.root.configure(bg=BG_MAIN)
         self.root.resizable(True, True)
+        self._icon_image: Optional[tk.PhotoImage] = None
+
+        icon_set = False
+        if sys.platform == "win32":
+            ico_path = _find_icon_path("dns_icon_glass.ico")
+            if ico_path is not None:
+                try:
+                    self.root.iconbitmap(default=str(ico_path))
+                    icon_set = True
+                except tk.TclError:
+                    pass
+
+        icon_path = _find_icon_path("dns_icon_glass.png")
+        if icon_path is not None:
+            try:
+                self._icon_image = tk.PhotoImage(file=str(icon_path))
+                if not icon_set:
+                    self.root.iconphoto(True, self._icon_image)
+            except tk.TclError:
+                pass
+
+        _apply_windows_dark_titlebar(self.root)
 
         style = ttk.Style(self.root)
         try:
@@ -638,6 +699,7 @@ class FastDnsApp:
         dlg = tk.Toplevel(self.root)
         dlg.title("Routing Rules")
         dlg.configure(bg=BG_MAIN)
+        _apply_windows_dark_titlebar(dlg)
 
         top_box = tk.Frame(dlg, bg=BG_MAIN, padx=16, pady=14)
         top_box.pack(fill="both", expand=True)
@@ -804,6 +866,7 @@ class FastDnsApp:
         dlg = tk.Toplevel(self.root)
         dlg.title("Add Profile")
         dlg.configure(bg=BG_MAIN)
+        _apply_windows_dark_titlebar(dlg)
 
         box = tk.Frame(dlg, bg=BG_MAIN, padx=16, pady=14)
         box.pack(fill="both", expand=True)

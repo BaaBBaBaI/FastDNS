@@ -4,7 +4,11 @@ a = Analysis(
     ["main.py"],
     pathex=[],
     binaries=[],
-    datas=[("dns_profiles", "dns_profiles")],
+    datas=[
+        ("dns_profiles", "dns_profiles"),
+        ("img/icons/dns_icon_glass.png", "img/icons"),
+        ("img/icons/dns_icon_glass.ico", "img/icons"),
+    ],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
@@ -25,6 +29,7 @@ exe = EXE(
     strip=False,
     upx=True,
     console=False,
+    icon="img/icons/dns_icon_glass.ico",
 )
 coll = COLLECT(
     exe,
