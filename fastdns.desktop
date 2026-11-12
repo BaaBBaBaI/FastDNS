@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=FastDNS
+Comment=Minimalist conditional DNS switcher for MagicDNS (Google, Gemini & Antigravity)
+Exec=/usr/bin/python3 /home/baabbabai/microapps/fastdns/main.py
+Path=/home/baabbabai/microapps/fastdns
+Icon=network-workgroup
+Terminal=false
+Categories=Network;Utility;
+StartupNotify=true
