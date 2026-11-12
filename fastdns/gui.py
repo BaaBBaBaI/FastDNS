@@ -34,6 +34,20 @@ COLOR_GREEN = "#4ec9b0"     # Status active green
 COLOR_RED = "#f14c4c"       # Warning / inactive red
 
 
+def _make_modal(dlg: tk.Toplevel, parent: tk.Wm) -> None:
+    """Safely make a Toplevel dialog modal across Windows and Linux (X11/Wayland)."""
+    dlg.transient(parent)
+    dlg.update_idletasks()
+    try:
+        dlg.wait_visibility()
+    except tk.TclError:
+        pass
+    try:
+        dlg.grab_set()
+    except tk.TclError:
+        pass
+
+
 def _fit_window(win: tk.Wm, min_w: int = 420, min_h: int = 540) -> None:
     """Center window cleanly on screen."""
     win.update_idletasks()
@@ -84,6 +98,9 @@ class FastDnsApp:
             background=BG_PANEL,
             foreground=TEXT_TITLE,
             arrowcolor=TEXT_PRI,
+            bordercolor=BORDER,
+            lightcolor=BG_INPUT,
+            darkcolor=BG_INPUT,
             borderwidth=1,
             relief="solid",
         )
@@ -93,7 +110,12 @@ class FastDnsApp:
             foreground=[("readonly", TEXT_TITLE)],
             selectbackground=[("readonly", BG_INPUT)],
             selectforeground=[("readonly", TEXT_TITLE)],
+            bordercolor=[("focus", COLOR_ACCENT), ("!focus", BORDER)],
         )
+        self.root.option_add("*TCombobox*Listbox.background", BG_INPUT)
+        self.root.option_add("*TCombobox*Listbox.foreground", TEXT_TITLE)
+        self.root.option_add("*TCombobox*Listbox.selectBackground", COLOR_ACCENT)
+        self.root.option_add("*TCombobox*Listbox.selectForeground", "#ffffff")
 
     def _build_ui(self) -> None:
         font_family = "Segoe UI" if sys.platform == "win32" else "DejaVu Sans"
@@ -177,6 +199,8 @@ class FastDnsApp:
             activeforeground="#ffffff",
             activebackground="#005999",
             relief="flat",
+            bd=0,
+            highlightthickness=0,
             cursor="hand2",
             padx=16,
             pady=8,
@@ -286,6 +310,8 @@ class FastDnsApp:
             text="Conditional (Google & AI)",
             font=(font_family, 8),
             relief="flat",
+            bd=0,
+            highlightthickness=0,
             cursor="hand2",
             padx=10,
             pady=4,
@@ -298,6 +324,8 @@ class FastDnsApp:
             text="Global (All DNS)",
             font=(font_family, 8),
             relief="flat",
+            bd=0,
+            highlightthickness=0,
             cursor="hand2",
             padx=10,
             pady=4,
@@ -325,6 +353,8 @@ class FastDnsApp:
             text="OS-Native (DoT / NRPT)",
             font=(font_family, 8),
             relief="flat",
+            bd=0,
+            highlightthickness=0,
             cursor="hand2",
             padx=10,
             pady=4,
@@ -337,6 +367,8 @@ class FastDnsApp:
             text="Local Proxy (DoH 443)",
             font=(font_family, 8),
             relief="flat",
+            bd=0,
+            highlightthickness=0,
             cursor="hand2",
             padx=10,
             pady=4,
@@ -383,6 +415,8 @@ class FastDnsApp:
             activeforeground=TEXT_TITLE,
             activebackground=BORDER,
             relief="flat",
+            bd=0,
+            highlightthickness=0,
             cursor="hand2",
             padx=8,
             pady=5,
@@ -436,19 +470,35 @@ class FastDnsApp:
     def _update_selectors(self) -> None:
         # Update Scope buttons
         if self.store.scope == "global":
-            self.btn_scope_global.configure(bg=COLOR_ACCENT, fg="#ffffff")
-            self.btn_scope_cond.configure(bg=BG_INPUT, fg=TEXT_MUTED)
+            self.btn_scope_global.configure(
+                bg=COLOR_ACCENT, fg="#ffffff", activebackground="#005999", activeforeground="#ffffff"
+            )
+            self.btn_scope_cond.configure(
+                bg=BG_INPUT, fg=TEXT_MUTED, activebackground=BORDER, activeforeground=TEXT_TITLE
+            )
         else:
-            self.btn_scope_cond.configure(bg=COLOR_ACCENT, fg="#ffffff")
-            self.btn_scope_global.configure(bg=BG_INPUT, fg=TEXT_MUTED)
+            self.btn_scope_cond.configure(
+                bg=COLOR_ACCENT, fg="#ffffff", activebackground="#005999", activeforeground="#ffffff"
+            )
+            self.btn_scope_global.configure(
+                bg=BG_INPUT, fg=TEXT_MUTED, activebackground=BORDER, activeforeground=TEXT_TITLE
+            )
 
         # Update Engine buttons
         if self.store.routing_mode == "hybrid":
-            self.btn_mode_hybrid.configure(bg=COLOR_ACCENT, fg="#ffffff")
-            self.btn_mode_native.configure(bg=BG_INPUT, fg=TEXT_MUTED)
+            self.btn_mode_hybrid.configure(
+                bg=COLOR_ACCENT, fg="#ffffff", activebackground="#005999", activeforeground="#ffffff"
+            )
+            self.btn_mode_native.configure(
+                bg=BG_INPUT, fg=TEXT_MUTED, activebackground=BORDER, activeforeground=TEXT_TITLE
+            )
         else:
-            self.btn_mode_native.configure(bg=COLOR_ACCENT, fg="#ffffff")
-            self.btn_mode_hybrid.configure(bg=BG_INPUT, fg=TEXT_MUTED)
+            self.btn_mode_native.configure(
+                bg=COLOR_ACCENT, fg="#ffffff", activebackground="#005999", activeforeground="#ffffff"
+            )
+            self.btn_mode_hybrid.configure(
+                bg=BG_INPUT, fg=TEXT_MUTED, activebackground=BORDER, activeforeground=TEXT_TITLE
+            )
 
     def _set_scope(self, scope: str) -> None:
         if self._busy or self.store.scope == scope:
@@ -500,14 +550,14 @@ class FastDnsApp:
             self.status_desc.configure(
                 text=f"Scope: {scope_str}\nEngine: {mode_str}"
             )
-            self.toggle_btn.configure(text="Disable DNS", bg="#3a3d41")
+            self.toggle_btn.configure(text="Disable DNS", bg="#3a3d41", activebackground="#4c5055")
         else:
             self.status_dot.configure(fg=COLOR_RED)
             self.status_text.configure(text="Disabled (System Default DNS)")
             self.status_desc.configure(
                 text="All traffic is resolved using your default network DNS."
             )
-            self.toggle_btn.configure(text="Enable DNS", bg=COLOR_ACCENT)
+            self.toggle_btn.configure(text="Enable DNS", bg=COLOR_ACCENT, activebackground="#005999")
 
     def on_toggle_clicked(self) -> None:
         if self._busy:
@@ -588,8 +638,6 @@ class FastDnsApp:
         dlg = tk.Toplevel(self.root)
         dlg.title("Routing Rules")
         dlg.configure(bg=BG_MAIN)
-        dlg.transient(self.root)
-        dlg.grab_set()
 
         top_box = tk.Frame(dlg, bg=BG_MAIN, padx=16, pady=14)
         top_box.pack(fill="both", expand=True)
@@ -620,6 +668,10 @@ class FastDnsApp:
             fg=TEXT_TITLE,
             insertbackground=TEXT_TITLE,
             relief="flat",
+            bd=0,
+            highlightthickness=1,
+            highlightbackground=BORDER,
+            highlightcolor=COLOR_ACCENT,
             font=(font_family, 9),
         )
         entry.pack(side="left", fill="x", expand=True, ipady=4, padx=(0, 6))
@@ -637,6 +689,8 @@ class FastDnsApp:
             selectbackground=COLOR_ACCENT,
             selectforeground="#ffffff",
             relief="flat",
+            bd=0,
+            highlightthickness=0,
             font=("Monospace", 9),
             yscrollcommand=scrollbar.set,
             height=12,
@@ -677,7 +731,11 @@ class FastDnsApp:
             font=(font_family, 8),
             fg="#ffffff",
             bg=COLOR_ACCENT,
+            activeforeground="#ffffff",
+            activebackground="#005999",
             relief="flat",
+            bd=0,
+            highlightthickness=0,
             cursor="hand2",
             padx=10,
             command=add_domain,
@@ -692,7 +750,11 @@ class FastDnsApp:
             font=(font_family, 8),
             fg=TEXT_PRI,
             bg=BG_INPUT,
+            activeforeground=TEXT_TITLE,
+            activebackground=BORDER,
             relief="flat",
+            bd=0,
+            highlightthickness=0,
             cursor="hand2",
             padx=8,
             pady=4,
@@ -705,7 +767,11 @@ class FastDnsApp:
             font=(font_family, 8),
             fg=TEXT_PRI,
             bg=BG_INPUT,
+            activeforeground=TEXT_TITLE,
+            activebackground=BORDER,
             relief="flat",
+            bd=0,
+            highlightthickness=0,
             cursor="hand2",
             padx=8,
             pady=4,
@@ -718,7 +784,11 @@ class FastDnsApp:
             font=(font_family, 8),
             fg=TEXT_PRI,
             bg=BG_INPUT,
+            activeforeground=TEXT_TITLE,
+            activebackground=BORDER,
             relief="flat",
+            bd=0,
+            highlightthickness=0,
             cursor="hand2",
             padx=10,
             pady=4,
@@ -727,14 +797,13 @@ class FastDnsApp:
 
         populate()
         _fit_window(dlg, min_w=440, min_h=460)
+        _make_modal(dlg, self.root)
 
     def _open_add_profile_dialog(self) -> None:
         font_family = "Segoe UI" if sys.platform == "win32" else "DejaVu Sans"
         dlg = tk.Toplevel(self.root)
         dlg.title("Add Profile")
         dlg.configure(bg=BG_MAIN)
-        dlg.transient(self.root)
-        dlg.grab_set()
 
         box = tk.Frame(dlg, bg=BG_MAIN, padx=16, pady=14)
         box.pack(fill="both", expand=True)
@@ -770,6 +839,10 @@ class FastDnsApp:
                 fg=TEXT_TITLE,
                 insertbackground=TEXT_TITLE,
                 relief="flat",
+                bd=0,
+                highlightthickness=1,
+                highlightbackground=BORDER,
+                highlightcolor=COLOR_ACCENT,
                 font=(font_family, 9),
             )
             e.insert(0, def_val)
@@ -803,6 +876,9 @@ class FastDnsApp:
             self.store.add_or_update_profile(prof)
             self.store.set_active_profile(pid)
             self._refresh_profile_selector()
+            self._render_status()
+            if self.status.enabled and not self._busy:
+                self._apply_toggle(enable=True)
             dlg.destroy()
 
         b_row = tk.Frame(box, bg=BG_MAIN)
@@ -814,7 +890,11 @@ class FastDnsApp:
             font=(font_family, 8),
             fg="#ffffff",
             bg=COLOR_ACCENT,
+            activeforeground="#ffffff",
+            activebackground="#005999",
             relief="flat",
+            bd=0,
+            highlightthickness=0,
             cursor="hand2",
             padx=12,
             pady=4,
@@ -827,14 +907,23 @@ class FastDnsApp:
             font=(font_family, 8),
             fg=TEXT_PRI,
             bg=BG_INPUT,
+            activeforeground=TEXT_TITLE,
+            activebackground=BORDER,
             relief="flat",
+            bd=0,
+            highlightthickness=0,
             cursor="hand2",
             padx=8,
             pady=4,
             command=dlg.destroy,
         ).pack(side="right", padx=(0, 6))
 
+        dlg.bind("<Return>", lambda _e: save())
+        dlg.bind("<Escape>", lambda _e: dlg.destroy())
+
         _fit_window(dlg, min_w=380, min_h=420)
+        _make_modal(dlg, self.root)
+        entries["id"].focus_set()
 
 
 def run_gui() -> None:
