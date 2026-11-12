@@ -1,8 +1,8 @@
 # FastDNS
 
 <p align="center">
-  <img src="images/screenshot_linux.png" width="30%" alt="linux screenshot" />
-  <img src="images/screenshot_windows.png" width="30%" alt="windows screenshot" />
+  <img src="img/screenshot_linux.png" width="30%" alt="linux screenshot" />
+  <img src="img/screenshot_windows.png" width="30%" alt="windows screenshot" />
 </p>
 
 
