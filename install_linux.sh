@@ -140,7 +140,7 @@ Path=${INSTALL_DIR}
 Icon=${INSTALL_DIR}/img/icons/dns_icon_glass_8x.png
 Terminal=false
 Categories=Network;Utility;
-StartupNotify=true
+StartupNotify=false
 StartupWMClass=Fastdns
 EOF
 

@@ -8,5 +8,5 @@ Path=/home/baabbabai/microapps/fastdns
 Icon=/home/baabbabai/microapps/fastdns/img/icons/dns_icon_glass_8x.png
 Terminal=false
 Categories=Network;Utility;
-StartupNotify=true
+StartupNotify=false
 StartupWMClass=Fastdns
