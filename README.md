@@ -36,12 +36,30 @@ python main.py
 
 ## Install
 
-### Linux
+### Standalone AppImage (Linux) & EXE (Windows)
+
+FastDNS can be run directly or installed from standalone single-file builds (no Python installation required):
+
+- **Linux (`FastDNS-x86_64.AppImage`)**:
+  ```bash
+  chmod +x FastDNS-x86_64.AppImage
+  ./FastDNS-x86_64.AppImage
+  # Or integrate into your app menu and PATH:
+  ./install_linux.sh --appimage ./FastDNS-x86_64.AppImage
+  ```
+- **Windows (`FastDNS.exe`)**:
+  Run `FastDNS.exe` directly as a portable app, or install it with Start Menu / Desktop shortcuts and uninstaller support:
+  ```powershell
+  .\install_windows.ps1 -ExePath .\FastDNS.exe
+  ```
+  (Both `install_linux.sh` and `install_windows.ps1` also auto-detect a `FastDNS-*.AppImage` or `FastDNS.exe` placed alongside the script or in `dist/`.)
+
+### Linux (From Source)
 
 Install for the current user (`~/.local/share/fastdns`, `~/.local/bin/fastdns`, and application menu entry):
 
 ```bash
-./install_linux.sh
+./install_linux.sh --from-source
 ```
 
 Or install system-wide (`/opt/fastdns` and `/usr/local/bin/fastdns`):
@@ -58,7 +76,7 @@ To uninstall:
 sudo ./install_linux.sh --system --uninstall
 ```
 
-### Windows
+### Windows (From Source)
 
 Double-click `install_windows.bat`, or run in PowerShell:
 
@@ -66,7 +84,7 @@ Double-click `install_windows.bat`, or run in PowerShell:
 .\install_windows.ps1
 ```
 
-This installs FastDNS to `%LOCALAPPDATA%\Programs\FastDNS`, creates Start Menu and Desktop shortcuts, and registers an uninstaller in Windows Installed Apps. If Python is not installed, the script offers to install it via `winget`.
+This installs FastDNS to `%LOCALAPPDATA%\Programs\FastDNS`, creates Start Menu and Desktop shortcuts, and registers an uninstaller in Windows Installed Apps. If Python is not installed and no `FastDNS.exe` is present, the script offers to install Python via `winget`.
 
 For a system-wide install (`C:\Program Files\FastDNS`), run PowerShell as Administrator:
 
@@ -80,15 +98,19 @@ To uninstall, use Windows Installed Apps ("FastDNS"), run `uninstall.bat` in the
 .\install_windows.ps1 -Uninstall
 ```
 
-### Building a Standalone Windows EXE (Optional)
+### Building Standalone Packages
 
-On a Windows machine with Python installed, run:
+- **Linux AppImage** (requires `python3`, `python3-tk`, `pyinstaller`, and `appimagetool`):
+  ```bash
+  ./build_appimage.sh
+  ```
+  Outputs `dist/FastDNS-<arch>.AppImage`.
 
-```bat
-build_windows.bat
-```
-
-This builds `dist\FastDNS\FastDNS.exe` using PyInstaller, and if Inno Setup 6 is installed, also builds `dist\FastDNS-Setup.exe`.
+- **Windows Standalone EXE** (on Windows with Python installed):
+  ```bat
+  build_windows.bat
+  ```
+  Outputs a single standalone `dist\FastDNS.exe` using PyInstaller, and if Inno Setup 6 is installed, also builds `dist\FastDNS-Setup.exe`.
 
 ## CLI Usage
 

@@ -1,7 +1,9 @@
 param(
     [switch]$System,
     [switch]$Uninstall,
-    [switch]$NoDesktopShortcut
+    [switch]$NoDesktopShortcut,
+    [string]$ExePath = "",
+    [switch]$FromSource
 )
 
 $ErrorActionPreference = "Stop"
@@ -89,56 +91,104 @@ if ($System) {
     }
 }
 
-$PythonExe = Find-Python
-if (-not $PythonExe) {
-    Write-Host "Python 3 was not found."
-    if (Get-Command winget -ErrorAction SilentlyContinue) {
-        $reply = Read-Host "Install Python 3.12 via winget now? [Y/n]"
-        if ($reply -eq "" -or $reply -match "^[Yy]") {
-            winget install -e --id Python.Python.3.12 --accept-package-agreements --accept-source-agreements
-            # Refresh PATH for current session
-            $env:Path = [Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [Environment]::GetEnvironmentVariable("Path", "User")
-            $PythonExe = Find-Python
+if (-not $ExePath -and -not $FromSource) {
+    foreach ($candidate in @(
+        (Join-Path $SourceDir "FastDNS.exe"),
+        (Join-Path $SourceDir "dist\FastDNS.exe")
+    )) {
+        if (Test-Path $candidate) {
+            $ExePath = $candidate
+            break
         }
     }
 }
 
-if (-not $PythonExe) {
-    Write-Error "Python 3 is required. Download it from https://www.python.org/downloads/ (enable 'Add Python to PATH' and 'tcl/tk')."
-    exit 1
-}
-
-$PythonDir = Split-Path -Parent $PythonExe
-$PythonwExe = Join-Path $PythonDir "pythonw.exe"
-if (-not (Test-Path $PythonwExe)) {
-    $PythonwExe = $PythonExe
-}
-
-Write-Host "Using Python: $PythonExe"
-Write-Host "Installing $AppName to $InstallDir..."
-
 New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
-
-# Clean old code/profiles/assets copy before copying fresh files
-foreach ($sub in @("fastdns", "dns_profiles", "img")) {
-    $destSub = Join-Path $InstallDir $sub
-    if (Test-Path $destSub) {
-        Remove-Item -Path $destSub -Recurse -Force
-    }
-    Copy-Item -Path (Join-Path $SourceDir $sub) -Destination $destSub -Recurse -Force
-}
-
-Get-ChildItem -Path $InstallDir -Directory -Recurse -Filter "__pycache__" | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
-
-Copy-Item -Path (Join-Path $SourceDir "main.py") -Destination (Join-Path $InstallDir "main.py") -Force
 Copy-Item -Path (Join-Path $SourceDir "install_windows.ps1") -Destination (Join-Path $InstallDir "install_windows.ps1") -Force
 
-# Create CLI wrapper
-$CmdWrapper = @"
+if ($ExePath) {
+    if (-not (Test-Path $ExePath)) {
+        Write-Error "Standalone executable not found at: $ExePath"
+        exit 1
+    }
+    Write-Host "Installing standalone FastDNS.exe to $InstallDir..."
+    $InstalledExe = Join-Path $InstallDir "FastDNS.exe"
+    Copy-Item -Path $ExePath -Destination $InstalledExe -Force
+
+    $ShortcutTarget = $InstalledExe
+    $ShortcutArgs = ""
+
+    # Create CLI wrapper
+    $CmdWrapper = @"
+@echo off
+"$InstalledExe" %*
+"@
+    Set-Content -Path (Join-Path $InstallDir "fastdns.cmd") -Value $CmdWrapper -Encoding ASCII
+
+    $AppIconFile = Join-Path $SourceDir "img\icons\dns_icon_glass.ico"
+    if (Test-Path $AppIconFile) {
+        $IconDir = Join-Path $InstallDir "img\icons"
+        New-Item -ItemType Directory -Path $IconDir -Force | Out-Null
+        Copy-Item -Path $AppIconFile -Destination (Join-Path $IconDir "dns_icon_glass.ico") -Force
+        $AppIconLocation = "$IconDir\dns_icon_glass.ico,0"
+    } else {
+        $AppIconLocation = "$InstalledExe,0"
+    }
+} else {
+    $PythonExe = Find-Python
+    if (-not $PythonExe) {
+        Write-Host "Python 3 was not found."
+        if (Get-Command winget -ErrorAction SilentlyContinue) {
+            $reply = Read-Host "Install Python 3.12 via winget now? [Y/n]"
+            if ($reply -eq "" -or $reply -match "^[Yy]") {
+                winget install -e --id Python.Python.3.12 --accept-package-agreements --accept-source-agreements
+                # Refresh PATH for current session
+                $env:Path = [Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [Environment]::GetEnvironmentVariable("Path", "User")
+                $PythonExe = Find-Python
+            }
+        }
+    }
+
+    if (-not $PythonExe) {
+        Write-Error "Python 3 is required (or pass -ExePath FastDNS.exe). Download Python from https://www.python.org/downloads/ (enable 'Add Python to PATH' and 'tcl/tk')."
+        exit 1
+    }
+
+    $PythonDir = Split-Path -Parent $PythonExe
+    $PythonwExe = Join-Path $PythonDir "pythonw.exe"
+    if (-not (Test-Path $PythonwExe)) {
+        $PythonwExe = $PythonExe
+    }
+
+    Write-Host "Using Python: $PythonExe"
+    Write-Host "Installing $AppName to $InstallDir..."
+
+    # Clean old code/profiles/assets copy before copying fresh files
+    foreach ($sub in @("fastdns", "dns_profiles", "img")) {
+        $destSub = Join-Path $InstallDir $sub
+        if (Test-Path $destSub) {
+            Remove-Item -Path $destSub -Recurse -Force
+        }
+        Copy-Item -Path (Join-Path $SourceDir $sub) -Destination $destSub -Recurse -Force
+    }
+
+    Get-ChildItem -Path $InstallDir -Directory -Recurse -Filter "__pycache__" | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+
+    Copy-Item -Path (Join-Path $SourceDir "main.py") -Destination (Join-Path $InstallDir "main.py") -Force
+
+    $ShortcutTarget = $PythonwExe
+    $ShortcutArgs = "`"$InstallDir\main.py`""
+
+    # Create CLI wrapper
+    $CmdWrapper = @"
 @echo off
 "$PythonExe" "$InstallDir\main.py" %*
 "@
-Set-Content -Path (Join-Path $InstallDir "fastdns.cmd") -Value $CmdWrapper -Encoding ASCII
+    Set-Content -Path (Join-Path $InstallDir "fastdns.cmd") -Value $CmdWrapper -Encoding ASCII
+
+    $AppIconFile = Join-Path $InstallDir "img\icons\dns_icon_glass.ico"
+    $AppIconLocation = if (Test-Path $AppIconFile) { "$AppIconFile,0" } else { "$env:SystemRoot\System32\shell32.dll,13" }
+}
 
 # Create Uninstall script
 $UninstallBat = @"
@@ -155,15 +205,12 @@ pause
 }
 Set-Content -Path (Join-Path $InstallDir "uninstall.bat") -Value $UninstallBat -Encoding ASCII
 
-$AppIconFile = Join-Path $InstallDir "img\icons\dns_icon_glass.ico"
-$AppIconLocation = if (Test-Path $AppIconFile) { "$AppIconFile,0" } else { "$env:SystemRoot\System32\shell32.dll,13" }
-
 # Create Start Menu shortcut
 New-Item -ItemType Directory -Path $StartMenuDir -Force | Out-Null
 New-Shortcut `
     -ShortcutPath (Join-Path $StartMenuDir "FastDNS.lnk") `
-    -TargetPath $PythonwExe `
-    -Arguments "`"$InstallDir\main.py`"" `
+    -TargetPath $ShortcutTarget `
+    -Arguments $ShortcutArgs `
     -WorkingDirectory $InstallDir `
     -Description "FastDNS Conditional DNS Switcher" `
     -IconLocation $AppIconLocation
@@ -179,8 +226,8 @@ New-Shortcut `
 if (-not $NoDesktopShortcut) {
     New-Shortcut `
         -ShortcutPath (Join-Path $DesktopDir "FastDNS.lnk") `
-        -TargetPath $PythonwExe `
-        -Arguments "`"$InstallDir\main.py`"" `
+        -TargetPath $ShortcutTarget `
+        -Arguments $ShortcutArgs `
         -WorkingDirectory $InstallDir `
         -Description "FastDNS Conditional DNS Switcher" `
         -IconLocation $AppIconLocation

@@ -1,5 +1,9 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+import sys
+
+_exe_icon = "img/icons/dns_icon_glass.ico" if sys.platform == "win32" else None
+
 a = Analysis(
     ["main.py"],
     pathex=[],
@@ -7,6 +11,7 @@ a = Analysis(
     datas=[
         ("dns_profiles", "dns_profiles"),
         ("img/icons/dns_icon_glass.png", "img/icons"),
+        ("img/icons/dns_icon_glass_8x.png", "img/icons"),
         ("img/icons/dns_icon_glass.ico", "img/icons"),
     ],
     hiddenimports=[],
@@ -21,22 +26,21 @@ pyz = PYZ(a.pure)
 exe = EXE(
     pyz,
     a.scripts,
+    a.binaries,
+    a.datas,
     [],
-    exclude_binaries=True,
     name="FastDNS",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
-    console=False,
-    icon="img/icons/dns_icon_glass.ico",
-)
-coll = COLLECT(
-    exe,
-    a.binaries,
-    a.datas,
-    strip=False,
-    upx=True,
     upx_exclude=[],
-    name="FastDNS",
+    runtime_tmpdir=None,
+    console=False,
+    disable_windowed_traceback=False,
+    argv_emulation=False,
+    target_arch=None,
+    codesign_identity=None,
+    entitlements_file=None,
+    icon=_exe_icon,
 )

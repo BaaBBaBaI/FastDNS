@@ -6,6 +6,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MODE="auto"
 ACTION="install"
 CUSTOM_PREFIX=""
+APPIMAGE_PATH=""
+FROM_SOURCE=0
 
 usage() {
     cat <<EOF
@@ -15,11 +17,13 @@ Usage:
   ./install_linux.sh [OPTIONS]
 
 Options:
-  --user           Install for current user (~/.local/share/fastdns)
-  --system         Install system-wide (/opt/fastdns, requires root/sudo)
-  --prefix DIR     Install under custom prefix DIR
-  --uninstall      Uninstall FastDNS
-  -h, --help       Show this help message
+  --user            Install for current user (~/.local/share/fastdns)
+  --system          Install system-wide (/opt/fastdns, requires root/sudo)
+  --prefix DIR      Install under custom prefix DIR
+  --appimage FILE   Install from a standalone .AppImage file (no Python required)
+  --from-source     Force source-based install even if an AppImage is present
+  --uninstall       Uninstall FastDNS
+  -h, --help        Show this help message
 EOF
 }
 
@@ -41,6 +45,18 @@ while [[ $# -gt 0 ]]; do
             MODE="custom"
             CUSTOM_PREFIX="$2"
             shift 2
+            ;;
+        --appimage)
+            if [[ $# -lt 2 ]]; then
+                echo "Error: --appimage requires a file path argument." >&2
+                exit 1
+            fi
+            APPIMAGE_PATH="$2"
+            shift 2
+            ;;
+        --from-source)
+            FROM_SOURCE=1
+            shift
             ;;
         --uninstall)
             ACTION="uninstall"
@@ -99,35 +115,66 @@ if [[ "$ACTION" == "uninstall" ]]; then
     exit 0
 fi
 
-if ! command -v python3 >/dev/null 2>&1; then
-    echo "Error: python3 is not installed. Please install Python 3 first." >&2
-    exit 1
+if [[ -z "${APPIMAGE_PATH}" && "${FROM_SOURCE}" -eq 0 ]]; then
+    for candidate in "${SCRIPT_DIR}"/FastDNS-*.AppImage "${SCRIPT_DIR}"/dist/FastDNS-*.AppImage; do
+        if [[ -f "${candidate}" ]]; then
+            APPIMAGE_PATH="${candidate}"
+            break
+        fi
+    done
 fi
 
-if ! python3 -c "import tkinter" >/dev/null 2>&1; then
-    echo "Warning: Python tkinter module is not installed. The GUI requires python3-tk."
-    echo "Install it on Ubuntu/Debian/Mint with: sudo apt install python3-tk"
-fi
+if [[ -n "${APPIMAGE_PATH}" ]]; then
+    if [[ ! -f "${APPIMAGE_PATH}" ]]; then
+        echo "Error: AppImage not found at: ${APPIMAGE_PATH}" >&2
+        exit 1
+    fi
+    echo "Installing FastDNS AppImage to ${INSTALL_DIR}..."
+    mkdir -p "${INSTALL_DIR}" "${BIN_DIR}" "${DESKTOP_DIR}"
+    rm -rf "${INSTALL_DIR}/fastdns" "${INSTALL_DIR}/dns_profiles" "${INSTALL_DIR}/img" "${INSTALL_DIR}/main.py"
+    mkdir -p "${INSTALL_DIR}/img/icons"
+    cp "${APPIMAGE_PATH}" "${INSTALL_DIR}/FastDNS.AppImage"
+    chmod +x "${INSTALL_DIR}/FastDNS.AppImage"
+    if [[ -f "${SCRIPT_DIR}/img/icons/dns_icon_glass_8x.png" ]]; then
+        cp "${SCRIPT_DIR}/img/icons/dns_icon_glass_8x.png" "${INSTALL_DIR}/img/icons/dns_icon_glass_8x.png"
+    fi
 
-echo "Installing FastDNS to ${INSTALL_DIR}..."
-mkdir -p "${INSTALL_DIR}" "${BIN_DIR}" "${DESKTOP_DIR}"
+    cat > "${LAUNCHER_PATH}" <<EOF
+#!/usr/bin/env bash
+exec "${INSTALL_DIR}/FastDNS.AppImage" "\$@"
+EOF
+    chmod +x "${LAUNCHER_PATH}"
+else
+    if ! command -v python3 >/dev/null 2>&1; then
+        echo "Error: python3 is not installed. Please install Python 3 or pass --appimage FILE." >&2
+        exit 1
+    fi
 
-rm -rf "${INSTALL_DIR}/fastdns" "${INSTALL_DIR}/dns_profiles" "${INSTALL_DIR}/img"
-cp -r "${SCRIPT_DIR}/fastdns" "${INSTALL_DIR}/fastdns"
-cp -r "${SCRIPT_DIR}/dns_profiles" "${INSTALL_DIR}/dns_profiles"
-mkdir -p "${INSTALL_DIR}/img"
-cp -r "${SCRIPT_DIR}/img/icons" "${INSTALL_DIR}/img/icons"
-cp "${SCRIPT_DIR}/main.py" "${INSTALL_DIR}/main.py"
-chmod +x "${INSTALL_DIR}/main.py"
+    if ! python3 -c "import tkinter" >/dev/null 2>&1; then
+        echo "Warning: Python tkinter module is not installed. The GUI requires python3-tk."
+        echo "Install it on Ubuntu/Debian/Mint with: sudo apt install python3-tk"
+    fi
 
-# Remove __pycache__ from installed copy
-find "${INSTALL_DIR}" -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+    echo "Installing FastDNS from source to ${INSTALL_DIR}..."
+    mkdir -p "${INSTALL_DIR}" "${BIN_DIR}" "${DESKTOP_DIR}"
 
-cat > "${LAUNCHER_PATH}" <<EOF
+    rm -rf "${INSTALL_DIR}/fastdns" "${INSTALL_DIR}/dns_profiles" "${INSTALL_DIR}/img" "${INSTALL_DIR}/FastDNS.AppImage"
+    cp -r "${SCRIPT_DIR}/fastdns" "${INSTALL_DIR}/fastdns"
+    cp -r "${SCRIPT_DIR}/dns_profiles" "${INSTALL_DIR}/dns_profiles"
+    mkdir -p "${INSTALL_DIR}/img"
+    cp -r "${SCRIPT_DIR}/img/icons" "${INSTALL_DIR}/img/icons"
+    cp "${SCRIPT_DIR}/main.py" "${INSTALL_DIR}/main.py"
+    chmod +x "${INSTALL_DIR}/main.py"
+
+    # Remove __pycache__ from installed copy
+    find "${INSTALL_DIR}" -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+
+    cat > "${LAUNCHER_PATH}" <<EOF
 #!/usr/bin/env bash
 exec python3 "${INSTALL_DIR}/main.py" "\$@"
 EOF
-chmod +x "${LAUNCHER_PATH}"
+    chmod +x "${LAUNCHER_PATH}"
+fi
 
 cat > "${DESKTOP_PATH}" <<EOF
 [Desktop Entry]

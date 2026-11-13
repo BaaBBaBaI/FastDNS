@@ -29,7 +29,7 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 echo.
-echo Built standalone app: dist\FastDNS\FastDNS.exe
+echo Built standalone executable: dist\FastDNS.exe
 
 where iscc >nul 2>nul
 if %ERRORLEVEL% EQU 0 (
