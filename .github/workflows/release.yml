@@ -48,8 +48,9 @@ jobs:
         env:
           APPIMAGETOOL: /tmp/appimagetool-x86_64.AppImage
           APPIMAGE_EXTRACT_AND_RUN: "1"
-          PATH: "${{ github.workspace }}/.venv/bin:${{ env.PATH }}"
-        run: ./build_appimage.sh
+        run: |
+          export PATH="${GITHUB_WORKSPACE}/.venv/bin:${PATH}"
+          ./build_appimage.sh
 
       - name: Upload Linux AppImage artifact
         uses: actions/upload-artifact@v4
