@@ -136,7 +136,7 @@ class FastDnsApp:
                 except tk.TclError:
                     pass
 
-        icon_path = _find_icon_path("dns_icon_glass.png")
+        icon_path = _find_icon_path("dns_icon_glass_8x.png") or _find_icon_path("dns_icon_glass.png")
         if icon_path is not None:
             try:
                 self._icon_image = tk.PhotoImage(file=str(icon_path))
@@ -991,6 +991,6 @@ class FastDnsApp:
 
 def run_gui() -> None:
     """Run FastDNS GUI."""
-    root = tk.Tk()
+    root = tk.Tk(className="fastdns")
     FastDnsApp(root)
     root.mainloop()

@@ -112,9 +112,11 @@ fi
 echo "Installing FastDNS to ${INSTALL_DIR}..."
 mkdir -p "${INSTALL_DIR}" "${BIN_DIR}" "${DESKTOP_DIR}"
 
-rm -rf "${INSTALL_DIR}/fastdns" "${INSTALL_DIR}/dns_profiles"
+rm -rf "${INSTALL_DIR}/fastdns" "${INSTALL_DIR}/dns_profiles" "${INSTALL_DIR}/img"
 cp -r "${SCRIPT_DIR}/fastdns" "${INSTALL_DIR}/fastdns"
 cp -r "${SCRIPT_DIR}/dns_profiles" "${INSTALL_DIR}/dns_profiles"
+mkdir -p "${INSTALL_DIR}/img"
+cp -r "${SCRIPT_DIR}/img/icons" "${INSTALL_DIR}/img/icons"
 cp "${SCRIPT_DIR}/main.py" "${INSTALL_DIR}/main.py"
 chmod +x "${INSTALL_DIR}/main.py"
 
@@ -135,10 +137,11 @@ Name=FastDNS
 Comment=Minimalist conditional DNS switcher for MagicDNS and custom profiles
 Exec=${LAUNCHER_PATH}
 Path=${INSTALL_DIR}
-Icon=network-workgroup
+Icon=${INSTALL_DIR}/img/icons/dns_icon_glass_8x.png
 Terminal=false
 Categories=Network;Utility;
 StartupNotify=true
+StartupWMClass=Fastdns
 EOF
 
 if command -v update-desktop-database >/dev/null 2>&1; then
